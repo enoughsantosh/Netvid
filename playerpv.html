@@ -89,7 +89,7 @@
                 const sourcesContainer = document.getElementById('video-sources');
                 sourcesContainer.innerHTML = searchResult.sources.map(source => `
                     <li>
-                        <a href="https://netfree.cc${source.file.replace('unknown::su', hValue)}" 
+<a href="https://netfree.cc${source.file.replace('=unknown::su', hValue.replace('::su', '::ni'))}"
                            class="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg text-center 
                                   hover:bg-blue-700 transition duration-300 ease-in-out transform 
                                   hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 
