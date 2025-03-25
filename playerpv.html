@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Stream your favorite movies and TV shows in HD quality">
+    <meta name="keywords" content="Movies, TV Shows, Streaming, HD Videos">
+    <meta name="author" content="Your Streaming Platform">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Video Information</title>
+</head>
+<body class="bg-gray-100 min-h-screen antialiased">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-gray-900 to-black shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4 md:space-x-10">
+                <div class="flex justify-start lg:w-0 lg:flex-1">
+                    <a href="home.html" class="text-2xl font-bold text-white hover:text-gray-200 transition">
+                        
+                    </a>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-10">
+                    <a href="home.html" class="text-base font-medium text-gray-300 hover:text-white transition">
+                        Home
+                    </a>
+                    <a href="#" class="text-base font-medium text-gray-300 hover:text-white transition">
+                        TV Shows
+                    </a>
+                    <a href="#" class="text-base font-medium text-gray-300 hover:text-white transition">
+                        Movies
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container max-w-4xl mx-auto px-4 py-8">
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <!-- Thumbnail Container -->
+            <div class="relative w-full aspect-video">
+                <img id="video-thumbnail" 
+                     src="" 
+                     alt="Video Thumbnail" 
+                     class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-90"
+                />
+            </div>
+
+            <!-- Content Section -->
+            <div class="p-6 md:p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Available Video Sources</h2>
+                
+                <!-- Video Sources List -->
+                <ul id="video-sources" class="space-y-4">
+                    <!-- Sources will be dynamically populated here -->
+                </ul>
+
+                <!-- Error Message -->
+                <div id="error-message" class="hidden text-center text-red-600 font-semibold mt-6">
+                    Unable to load video sources. Please try again later.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '';
+        }
+
+        async function fetchAndDisplayVideo() {
+            try {
+                const hValue = getCookie("t_hash_t") || 'null';
+                const id = new URLSearchParams(window.location.search).get('id');
+
+                const response = await fetch(`https://netfree-seven.vercel.app/mp?h=${encodeURIComponent(hValue)}&q=${encodeURIComponent(id)}`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+                const data = await response.json();
+                const searchResult = data.searchResult?.[0];
+                if (!searchResult) throw new Error("Invalid data format");
+
+                // Set thumbnail
+                document.getElementById('video-thumbnail').src = searchResult.image;
+
+                // Display sources
+                const sourcesContainer = document.getElementById('video-sources');
+                sourcesContainer.innerHTML = searchResult.sources.map(source => `
+                    <li>
+                        <a href="https://netfree.cc${source.file.replace('::su', '::ni')}" 
+                           class="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg text-center 
+                                  hover:bg-blue-700 transition duration-300 ease-in-out transform 
+                                  hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 
+                                  focus:ring-blue-500 focus:ring-opacity-50"
+                           target="_blank">
+                           ${source.label}
+                        </a>
+                    </li>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error fetching video data:', error);
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+        }
+
+        // Call the function to fetch and display video after DOM loads
+        document.addEventListener("DOMContentLoaded", fetchAndDisplayVideo);
+    </script>
+</body>
+</html>

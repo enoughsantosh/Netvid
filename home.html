@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #141414;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .movie-row::-webkit-scrollbar {
+            height: 8px;
+        }
+        .movie-row::-webkit-scrollbar-track {
+            background: #2c2c2c;
+        }
+        .movie-row::-webkit-scrollbar-thumb {
+            background: #e50914;
+            border-radius: 4px;
+        }
+        .movie-row::-webkit-scrollbar-thumb:hover {
+            background: #f6121d;
+        }
+        .movie-card {
+            transition: all 0.3s ease-in-out;
+            position: relative;
+        }
+        .movie-card:hover {
+            transform: scale(1.1);
+            z-index: 20;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .movie-card-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .movie-card:hover .movie-card-overlay {
+            opacity: 1;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #e50914;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .search-container {
+            transition: all 0.3s ease;
+        }
+        .search-container:focus-within {
+            transform: scale(1.02);
+        }
+        @media (max-width: 640px) {
+            .movie-card {
+                width: calc(50% - 0.5rem);
+                flex-shrink: 0;
+            }
+            .movie-row {
+                gap: 0.5rem;
+            }
+            header {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .nav-container {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+            }
+            .search-container {
+                width: 100%;
+            }
+            #searchInput {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#141414]">
+    <header class="px-4 md:px-12 py-4 md:py-6 flex flex-wrap justify-between items-center bg-black bg-opacity-90 sticky top-0 z-50">
+                    
+        <div class="nav-container flex items-center justify-between w-full">
+            <div class="flex items-center">
+
+                <nav class="ml-6 md:ml-12 space-x-4 md:space-x-6 hidden md:block">
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Home</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">TV Shows</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Movies</a>
+                </nav>
+            </div>
+            <div class="search-container relative w-full md:w-72">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search titles, genres..." 
+                    class="bg-[#333] text-white px-4 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-[#e50914] transition-all"
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button 
+                    onclick="search()" 
+                    class="absolute right-0 top-0 bottom-0 px-4 flex items-center hover:text-white transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav class="w-full mt-4 space-x-4 text-center md:hidden">
+            <a href="#" class="text-gray-300 hover:text-white transition-colors">Home</a>
+            <a href="#" class="text-gray-300 hover:text-white transition-colors">TV Shows</a>
+            <a href="#" class="text-gray-300 hover:text-white transition-colors">Movies</a>
+        </nav>
+    </header>
+
+    <main class="px-4 md:px-12 py-6">
+        <!-- Netflix Results Section -->
+        <section id="netflixSection" class="mb-10">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <span class="bg-red-600 w-4 h-8 mr-2 rounded"></span>
+                Netflix
+            </h2>
+            <div 
+                id="netflixResults" 
+                class="movie-row flex overflow-x-auto space-x-4 pb-6 scroll-smooth"
+            >
+                <div class="text-center w-full text-gray-400 py-10">
+                    <div class="loading-spinner"></div>
+                    <p>Loading Netflix content...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Prime Video Results Section -->
+        <section id="primeSection" class="mb-10">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <span class="bg-blue-500 w-4 h-8 mr-2 rounded"></span>
+                Prime Video
+            </h2>
+            <div 
+                id="primeResults" 
+                class="movie-row flex overflow-x-auto space-x-4 pb-6 scroll-smooth"
+            >
+                <div class="text-center w-full text-gray-400 py-10">
+                    <div class="loading-spinner"></div>
+                    <p>Loading Prime Video content...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function getCookie(name) {
+            let cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    return cookie.split('=')[1];
+                }
+            }
+            return '';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                search();
+            }
+        }
+
+        function openPlaylist(id, platform) {
+            // Store the platform in localStorage so playlist.html knows where it came from
+            localStorage.setItem('lastPlatform', platform);
+            window.location.href = `playlist.html?id=${id}`;
+        }
+        
+                function openPlaylistpv(id, platform) {
+            // Store the platform in localStorage so playlist.html knows where it came from
+            localStorage.setItem('lastPlatform', platform);
+            window.location.href = `playlistpv.html?id=${id}`;
+        }
+
+        async function search() {
+            let query = document.getElementById("searchInput").value.trim();
+            let h = getCookie("t_hash_t") || 'null';
+
+            if (!query) {
+                alert("Please enter a search term.");
+                return;
+            }
+
+            // Show loading states
+            document.getElementById("netflixResults").innerHTML = `
+                <div class="text-center w-full text-gray-400 py-10">
+                    <div class="loading-spinner"></div>
+                    <p>Searching Netflix...</p>
+                </div>`;
+            document.getElementById("primeResults").innerHTML = `
+                <div class="text-center w-full text-gray-400 py-10">
+                    <div class="loading-spinner"></div>
+                    <p>Searching Prime Video...</p>
+                </div>`;
+
+            try {
+                let [netflixRes, primeRes] = await Promise.all([
+                    fetch(`https://netfree-seven.vercel.app/s?h=${h}&q=${encodeURIComponent(query)}`).then(res => res.json()),
+                    fetch(`https://netfree-seven.vercel.app/sp?h=${h}&q=${encodeURIComponent(query)}`).then(res => res.json())
+                ]);
+
+                displayResults(netflixRes, primeRes);
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById("netflixResults").innerHTML = `
+                    <div class="text-center w-full text-red-500 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Error fetching Netflix data
+                    </div>`;
+                document.getElementById("primeResults").innerHTML = `
+                    <div class="text-center w-full text-red-500 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Error fetching Prime Video data
+                    </div>`;
+            }
+        }
+
+        function displayResults(netflixRes, primeRes) {
+            const netflixGrid = document.getElementById("netflixResults");
+            const primeGrid = document.getElementById("primeResults");
+
+            // Handle Netflix Results
+            netflixGrid.innerHTML = '';
+            
+            // Determine the correct path for search results
+            let netflixResults = [];
+            if (netflixRes.message && netflixRes.message.searchResult) {
+                netflixResults = netflixRes.message.searchResult;
+            } else if (netflixRes.searchResult) {
+                netflixResults = netflixRes.searchResult;
+            }
+
+            if (netflixResults.length > 0) {
+                netflixResults.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.classList.add(
+                        'movie-card',
+                        'w-40',
+                        'md:w-56', 
+                        'bg-[#2c2c2c]', 
+                        'rounded-lg', 
+                        'overflow-hidden', 
+                        'shadow-lg',
+                        'cursor-pointer',
+                        'flex-shrink-0'
+                    );
+
+                    card.onclick = () => openPlaylist(movie.id, 'netflix');
+
+                    card.innerHTML = `
+                        <div class="relative w-full h-full">
+                            <img 
+                                src="https://imgcdn.media/poster/v/${movie.id}.jpg" 
+                                alt="${movie.t}" 
+                                class="w-full h-52 md:h-80 object-cover"
+                                onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=No+Image';"
+                            >
+                            <div class="movie-card-overlay absolute inset-0 flex flex-col justify-end p-4 text-white">
+                                <div class="text-sm md:text-base font-bold text-center mb-2">
+                                    ${movie.t}
+                                </div>
+                                <div class="text-xs text-gray-300 text-center">
+                                    ${movie.y || ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    netflixGrid.appendChild(card);
+                });
+            } else {
+                netflixGrid.innerHTML = `
+                    <div class="text-center w-full text-gray-400 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        No Netflix results found
+                    </div>`;
+            }
+
+            // Handle Prime Video Results
+            primeGrid.innerHTML = '';
+            let primeResults = [];
+            if (primeRes.message && primeRes.message.searchResult) {
+                primeResults = primeRes.message.searchResult;
+            } else if (primeRes.searchResult) {
+                primeResults = primeRes.searchResult;
+            }
+
+            if (primeResults.length > 0) {
+                primeResults.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.classList.add(
+                        'movie-card',
+                        'w-80',
+                        'md:w-80', 
+                        'bg-[#2c2c2c]', 
+                        'rounded-lg', 
+                        'overflow-hidden', 
+                        'shadow-lg',
+                        'cursor-pointer',
+                        'flex-shrink-0'
+                    );
+
+                    card.onclick = () => openPlaylistpv(movie.id, 'prime');
+
+                    card.innerHTML = `
+                        <div class="relative w-full h-full">
+                            <img 
+                                src="https://imgcdn.media/pv/341/${movie.id}.jpg" 
+                                alt="${movie.t}" 
+                                class="w-auto h-auto md:h-80 object-cover"
+                                onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=No+Image';"
+                            >
+                            <div class="movie-card-overlay absolute inset-0 flex flex-col justify-end p-4 text-white">
+                                <div class="text-sm md:text-base font-bold text-center mb-2">
+                                    ${movie.t}
+                                </div>
+                                <div class="text-xs text-gray-300 text-center">
+                                    ${movie.y || ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    primeGrid.appendChild(card);
+                });
+            } else {
+                primeGrid.innerHTML = `
+                    <div class="text-center w-full text-gray-400 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        No Prime Video results found
+                    </div>`;
+            }
+        }
+
+        // Initial catalog load
+        async function loadInitialCatalog() {
+            try {
+                let [netflixRes, primeRes] = await Promise.all([
+                    fetch('https://netfree-seven.vercel.app/s?h=null&q=hindi').then(res => res.json()),
+                    fetch('https://netfree-seven.vercel.app/sp?h=null&q=hindi').then(res => res.json())
+                ]);
+
+                displayResults(netflixRes, primeRes);
+            } catch (error) {
+                console.error('Initial catalog load error:', error);
+                document.getElementById("netflixResults").innerHTML = `
+                    <div class="text-center w-full text-red-500 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Error loading initial Netflix content
+                    </div>`;
+                document.getElementById("primeResults").innerHTML = `
+                    <div class="text-center w-full text-red-500 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Error loading initial Prime Video content
+                    </div>`;
+            }
+        }
+
+        // Load initial catalog when page loads
+        window.addEventListener('load', loadInitialCatalog);
+    </script>
+</body>
+</html>

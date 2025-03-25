@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetVideo | Loading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-opacity {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .animate-pulse-opacity {
+            animation: pulse-opacity 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen flex items-center justify-center">
+    <div id="loading-screen" class="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center">
+        <div class="flex flex-col items-center space-y-6">
+            <!-- NetVideo Logo with Animation -->
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-red-600 rounded-md animate-pulse-opacity"></div>
+                <h1 class="text-3xl font-bold text-white">NetVideo</h1>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div class="w-64 h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full bg-red-600 rounded-full animate-pulse-opacity" style="width: 60%"></div>
+            </div>
+            
+            <!-- Status Message (hidden initially) -->
+            <p id="status" class="mt-2 text-gray-400 text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookies = document.cookie.split("; ");
+            for (let cookie of cookies) {
+                let [key, value] = cookie.split("=");
+                if (key === name) return value;
+            }
+            return null;
+        }
+
+        async function fetchAndStoreCookie() {
+            const statusEl = document.getElementById("status");
+            try {
+                // Show status after 1.5 seconds if still loading
+                setTimeout(() => {
+                    statusEl.textContent = "Preparing your experience...";
+                    statusEl.classList.remove('hidden');
+                }, 1500);
+                
+                let response = await fetch("https://netfree-seven.vercel.app/cookie");
+                let data = await response.json();
+
+                if (data.success) {
+                    let cookieString = data.cookie;
+                    let match = cookieString.match(/t_hash_t=([^;]+)/);
+                    
+                    if (match) {
+                        let t_hash_t_value = match[1];
+                        document.cookie = `t_hash_t=${t_hash_t_value}; path=/; expires=${new Date(data.expiresAt).toUTCString()}; SameSite=Strict; Secure`;
+                        
+                        statusEl.textContent = "Ready!";
+                        setTimeout(() => {
+                            window.location.href = "home.html";
+                        }, 500);
+                    } else {
+                        statusEl.textContent = "Please refresh to continue";
+                    }
+                } else {
+                    statusEl.textContent = "Having trouble connecting";
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+                setTimeout(() => {
+                    statusEl.textContent = "Check your connection and refresh";
+                    statusEl.classList.remove('hidden');
+                }, 1500);
+            }
+        }
+
+        // On page load, check for existing cookie or fetch a new one
+        document.addEventListener('DOMContentLoaded', () => {
+            const existingCookie = getCookie("t_hash_t");
+            
+            if (existingCookie) {
+                window.location.href = "home.html";
+            } else {
+                fetchAndStoreCookie();
+            }
+        });
+    </script>
+</body>
+</html>
