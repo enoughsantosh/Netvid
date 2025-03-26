@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Stream your favorite movies and TV shows in HD quality">
     <meta name="keywords" content="Movies, TV Shows, Streaming, HD Videos">
-    <meta name="author" content="Your Streaming Platform">
+    <meta name="author" content="Premium Stream Player">
     <title>Premium Stream Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/video.js@7.8.4/dist/video-js.min.css" rel="stylesheet">
@@ -18,28 +18,77 @@
                         'brand-primary': '#e50914',
                         'dark-bg': '#141414',
                         'dark-secondary': '#222',
+                        'control-bg': 'rgba(0, 0, 0, 0.7)'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'fade-out': 'fadeOut 0.3s ease-in-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        fadeOut: {
+                            '0%': { opacity: '1' },
+                            '100%': { opacity: '0' }
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Custom Video.js styles */
-        .video-js .vjs-big-play-button {
-            background-color: theme('colors.brand-primary') !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 80px !important;
-            height: 80px !important;
-            line-height: 80px !important;
-            margin-left: -40px !important;
-            margin-top: -40px !important;
+
+        /* Custom control bar */
+        .vjs-control-bar {
+            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.5)) !important;
+            height: 60px !important;
         }
-        .video-js .vjs-play-progress {
-            background-color: theme('colors.brand-primary') !important;
+        
+        /* Custom play/pause button */
+        .custom-play-pause {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: theme('colors.control-bg');
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
         }
-        .vjs-paused .vjs-big-play-button {
-            display: block !important;
+        .video-container:hover .custom-play-pause {
+            opacity: 1;
+        }
+        .custom-play-pause i {
+            font-size: 30px;
+            color: white;
+        }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: theme('colors.brand-primary');
+            animation: spin 1s ease-in-out infinite;
+            z-index: 10;
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
         }
     </style>
 </head>
@@ -50,7 +99,7 @@
             <div class="flex justify-between items-center py-4 md:space-x-10">
                 <div class="flex justify-start lg:w-0 lg:flex-1">
                     <a href="home.html" class="text-2xl font-bold text-white hover:text-gray-200 transition">
-                        PLAYER
+                        <span class="text-brand-primary">PREMIUM</span> PLAYER
                     </a>
                 </div>
                 
@@ -87,19 +136,23 @@
             <!-- Player Header -->
             <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center 
                         bg-gradient-to-b from-black/70 to-transparent">
-                <div class="text-brand-primary text-2xl font-bold tracking-wider"> PLAYER</div>
+
                 <div class="flex items-center space-x-4">
-                    <button id="pip-button" class="text-white hover:text-brand-primary transition">
+                    <button id="pip-button" class="text-white hover:text-brand-primary transition" title="Picture-in-Picture">
                         <i class="fas fa-external-link-alt"></i>
                     </button>
-                    <button id="settings-btn" class="text-white hover:text-brand-primary transition">
+                    <button id="settings-btn" class="text-white hover:text-brand-primary transition" title="Settings">
                         <i class="fas fa-cog"></i>
                     </button>
                 </div>
             </div>
 
             <!-- Video Player -->
-            <div class="relative">
+            <div class="relative video-container">
+                <div class="loading-spinner" id="loading-spinner"></div>
+                <div class="custom-play-pause" id="custom-play-pause">
+                    <i class="fas fa-play" id="play-icon"></i>
+                </div>
                 <video 
                     id="video" 
                     class="video-js vjs-default-skin w-full aspect-video"
@@ -186,9 +239,9 @@
                 <button 
                     id="play-button" 
                     class="px-6 py-3 bg-brand-primary text-white font-bold rounded-md 
-                           hover:bg-red-700 transition transform active:scale-95"
+                           hover:bg-red-700 transition transform active:scale-95 flex items-center justify-center"
                 >
-                    PLAY STREAM
+                    <i class="fas fa-play mr-2"></i> PLAY STREAM
                 </button>
             </div>
         </div>
@@ -209,10 +262,16 @@
         const pipButton = document.getElementById('pip-button');
         const speedSelector = document.getElementById('speed-selector');
         const playButton = document.getElementById('play-button');
+        const customPlayPause = document.getElementById('custom-play-pause');
+        const playIcon = document.getElementById('play-icon');
+        const loadingSpinner = document.getElementById('loading-spinner');
 
         // Initialize player with default options
         function initializePlayer(sourceUrl) {
             const video = document.getElementById("video");
+            
+            // Show loading spinner
+            loadingSpinner.style.display = 'block';
             
             // Video.js player options
             const playerOptions = {
@@ -257,21 +316,24 @@
                     populateQualityOptions();
                     populateAudioTracks();
                     player.play();
+                    loadingSpinner.style.display = 'none';
                 });
                 
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error('HLS Error:', data);
+                    loadingSpinner.style.display = 'none';
+                    
                     if (data.fatal) {
                         switch(data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
-                                alert('Network error - please check your connection');
+                                showError('Network error - please check your connection');
                                 break;
                             case Hls.ErrorTypes.MEDIA_ERROR:
-                                alert('Media error - trying to recover');
+                                showError('Media error - trying to recover');
                                 hls.recoverMediaError();
                                 break;
                             default:
-                                alert('Fatal error - cannot recover');
+                                showError('Fatal error - cannot recover');
                                 break;
                         }
                     }
@@ -280,10 +342,56 @@
                 // For Safari
                 video.src = sourceUrl;
                 player = videojs(video, playerOptions);
+                player.on('loadedmetadata', () => {
+                    loadingSpinner.style.display = 'none';
+                });
                 player.play();
             } else {
-                alert('Your browser does not support HLS playback');
+                showError('Your browser does not support HLS playback');
+                loadingSpinner.style.display = 'none';
             }
+            
+            // Setup player event listeners
+            setupPlayerEvents();
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        function setupPlayerEvents() {
+            if (!player) return;
+            
+            // Update custom play/pause button based on player state
+            player.on('play', () => {
+                playIcon.classList.remove('fa-play');
+                playIcon.classList.add('fa-pause');
+            });
+            
+            player.on('pause', () => {
+                playIcon.classList.remove('fa-pause');
+                playIcon.classList.add('fa-play');
+            });
+            
+            // Show loading spinner when waiting for data
+            player.on('waiting', () => {
+                loadingSpinner.style.display = 'block';
+            });
+            
+            player.on('playing', () => {
+                loadingSpinner.style.display = 'none';
+            });
+            
+            // Custom play/pause button click handler
+            customPlayPause.addEventListener('click', () => {
+                if (player.paused()) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+            });
         }
 
         function populateQualityOptions() {
@@ -292,6 +400,7 @@
             
             if (!hls.levels || hls.levels.length < 2) {
                 qualitySelector.style.display = 'none';
+                document.querySelector('label[for="quality-selector"]').style.display = 'none';
                 return;
             }
             
@@ -317,6 +426,7 @@
             
             if (!hls.audioTracks || hls.audioTracks.length < 2) {
                 audioSelector.style.display = 'none';
+                document.querySelector('label[for="audio-selector"]').style.display = 'none';
                 return;
             }
             
@@ -324,12 +434,8 @@
                 const option = document.createElement("option");
                 option.value = index;
                 option.textContent = `${track.name} (${track.lang})`;
+                option.selected = track.default;
                 audioSelector.appendChild(option);
-                
-                if (track.default) {
-                    audioSelector.value = index;
-                    hls.audioTrack = index;
-                }
             });
             
             audioSelector.addEventListener("change", (event) => {
@@ -360,12 +466,12 @@
                 const sourcesContainer = document.getElementById('video-sources');
                 sourcesContainer.innerHTML = searchResult.sources.map(source => `
                     <li>
-                        <button data-source="https://netfree.cc${source.file.replace('::su', '::ni')}" 
+                        <button data-source="https://netfree.cc${source.file.replace('::su', '::su')}" 
                            class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg text-center 
                                   hover:bg-blue-700 transition duration-300 ease-in-out transform 
                                   hover:-translate-y-1 focus:outline-none focus:ring-2 
-                                  focus:ring-blue-500 focus:ring-opacity-50">
-                           ${source.label}
+                                  focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center">
+                           <i class="fas fa-play-circle mr-2"></i> ${source.label}
                         </button>
                     </li>
                 `).join('');
@@ -395,6 +501,9 @@
                 hls.destroy();
             }
 
+            // Hide error message if it was shown
+            document.getElementById('error-message').classList.add('hidden');
+            
             initializePlayer(proxyUrl);
         }
 
@@ -402,7 +511,7 @@
         playButton.addEventListener('click', () => {
             const urlInput = document.getElementById("m3u8-url").value.trim();
             if (!urlInput) {
-                alert("Please enter an M3U8 URL");
+                showError("Please enter an M3U8 URL");
                 return;
             }
             loadStream(urlInput);
@@ -418,6 +527,14 @@
         closeSettingsBtn.addEventListener('click', () => {
             settingsMenu.classList.remove('flex');
             settingsMenu.classList.add('hidden');
+        });
+
+        // Close settings when clicking outside
+        settingsMenu.addEventListener('click', (e) => {
+            if (e.target === settingsMenu) {
+                settingsMenu.classList.remove('flex');
+                settingsMenu.classList.add('hidden');
+            }
         });
 
         // Picture-in-Picture toggle
@@ -446,6 +563,42 @@
             if (streamUrl) {
                 loadStream(streamUrl);
             }
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (!player) return;
+                
+                // Spacebar to play/pause
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (player.paused()) {
+                        player.play();
+                    } else {
+                        player.pause();
+                    }
+                }
+                
+                // Arrow keys for seeking
+                if (e.code === 'ArrowRight') {
+                    player.currentTime(player.currentTime() + 5);
+                } else if (e.code === 'ArrowLeft') {
+                    player.currentTime(player.currentTime() - 5);
+                }
+                
+                // M key for mute toggle
+                if (e.code === 'KeyM') {
+                    player.muted(!player.muted());
+                }
+                
+                // F key for fullscreen toggle
+                if (e.code === 'KeyF') {
+                    if (player.isFullscreen()) {
+                        player.exitFullscreen();
+                    } else {
+                        player.requestFullscreen();
+                    }
+                }
+            });
         });
     </script>
 </body>
