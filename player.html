@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Stream your favorite movies and TV shows in HD quality">
-    <meta name="keywords" content="Movies, TV Shows, Streaming, HD Videos">
-    <meta name="author" content="Premium Stream Player">
-    <title>Premium Stream Player</title>
+    <title>Plyr Stream Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/video.js@7.8.4/dist/video-js.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -18,77 +15,30 @@
                         'brand-primary': '#e50914',
                         'dark-bg': '#141414',
                         'dark-secondary': '#222',
-                        'control-bg': 'rgba(0, 0, 0, 0.7)'
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-in-out',
-                        'fade-out': 'fadeOut 0.3s ease-in-out'
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' }
-                        },
-                        fadeOut: {
-                            '0%': { opacity: '1' },
-                            '100%': { opacity: '0' }
-                        }
                     }
                 }
             }
         }
     </script>
     <style>
-
-        /* Custom control bar */
-        .vjs-control-bar {
-            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.5)) !important;
-            height: 60px !important;
-        }
-        
-        /* Custom play/pause button */
-        .custom-play-pause {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            background: theme('colors.control-bg');
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 10;
-        }
-        .video-container:hover .custom-play-pause {
-            opacity: 1;
-        }
-        .custom-play-pause i {
-            font-size: 30px;
+        body {
+            background-color: #141414;
             color: white;
         }
-        
-        /* Loading spinner */
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: theme('colors.brand-primary');
-            animation: spin 1s ease-in-out infinite;
-            z-index: 10;
-            display: none;
+        .plyr--video {
+            background: #000;
         }
-        @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+        .plyr__control--overlaid {
+            background: rgba(229, 9, 20, 0.8) !important;
+        }
+        .plyr__control.plyr__tab-focus,
+        .plyr__control:hover {
+            background: #e50914 !important;
+        }
+        /* Custom settings menu styles */
+        .settings-menu {
+            background-color: rgba(34, 34, 34, 0.95);
+            backdrop-filter: blur(10px);
         }
     </style>
 </head>
@@ -118,6 +68,13 @@
             </div>
         </div>
     </header>
+            <!-- Video Sources Section -->
+        <div class="mt-8 max-w-4xl mx-auto">
+            <h2 class="text-xl font-bold mb-4">Available Sources</h2>
+            <ul id="video-sources" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Sources will be dynamically populated here -->
+            </ul>
+        </div>
 
     <div class="container mx-auto px-4 py-8">
         <!-- Video Info Section -->
@@ -130,104 +87,24 @@
                 />
             </div>
         </div>
-
-        <!-- Player Section -->
+    <div class="container mx-auto px-4 py-8">
         <div class="relative w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden shadow-2xl">
-            <!-- Player Header -->
-            <div class="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center 
-                        bg-gradient-to-b from-black/70 to-transparent">
-
-                <div class="flex items-center space-x-4">
-                    <button id="pip-button" class="text-white hover:text-brand-primary transition" title="Picture-in-Picture">
-                        <i class="fas fa-external-link-alt"></i>
-                    </button>
-                    <button id="settings-btn" class="text-white hover:text-brand-primary transition" title="Settings">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Video Player -->
-            <div class="relative video-container">
-                <div class="loading-spinner" id="loading-spinner"></div>
-                <div class="custom-play-pause" id="custom-play-pause">
-                    <i class="fas fa-play" id="play-icon"></i>
-                </div>
+            <!-- Player Container -->
+            <div class="relative">
                 <video 
-                    id="video" 
-                    class="video-js vjs-default-skin w-full aspect-video"
+                    id="player" 
                     controls 
-                    preload="auto"
-                    autoplay
+                    crossorigin 
+                    playsinline 
+                    class="w-full aspect-video"
                 >
-                    <p class="vjs-no-js">
-                        To view this video please enable JavaScript, and consider upgrading to a
-                        web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-                    </p>
+                    <source type="application/x-mpegURL" src="" />
                 </video>
             </div>
-
-            <!-- Settings Menu (Overlay) -->
-            <div id="settings-menu" 
-                 class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center 
-                        transform transition-all duration-300 ease-in-out">
-                <div class="bg-dark-secondary rounded-lg p-6 w-full max-w-md mx-4">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-semibold">Player Settings</h2>
-                        <button id="close-settings" class="text-white hover:text-brand-primary">
-                            <i class="fas fa-times text-2xl"></i>
-                        </button>
-                    </div>
-
-                    <div class="space-y-4">
-                        <!-- Quality Selector -->
-                        <div>
-                            <label class="block text-sm text-gray-400 mb-2">Video Quality</label>
-                            <select 
-                                id="quality-selector" 
-                                class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
-                            ></select>
-                        </div>
-
-                        <!-- Audio Language Selector -->
-                        <div>
-                            <label class="block text-sm text-gray-400 mb-2">Audio Language</label>
-                            <select 
-                                id="audio-selector" 
-                                class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
-                            ></select>
-                        </div>
-
-                        <!-- Playback Speed -->
-                        <div>
-                            <label class="block text-sm text-gray-400 mb-2">Playback Speed</label>
-                            <select 
-                                id="speed-selector" 
-                                class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
-                            >
-                                <option value="0.5">0.5x</option>
-                                <option value="1" selected>1x (Normal)</option>
-                                <option value="1.25">1.25x</option>
-                                <option value="1.5">1.5x</option>
-                                <option value="2">2x</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Video Sources Section -->
-        <div class="mt-8 max-w-4xl mx-auto">
-            <h2 class="text-xl font-bold mb-4">Available Sources</h2>
-            <ul id="video-sources" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Sources will be dynamically populated here -->
-            </ul>
-        </div>
-
-        <!-- Manual URL Input Section -->
-        <div class="mt-8 max-w-4xl mx-auto">
-            <h2 class="text-xl font-bold mb-4">Or Enter Stream URL Manually</h2>
+        <!-- URL Input Section -->
+        <div class="mt-6 max-w-4xl mx-auto">
             <div class="flex flex-col sm:flex-row gap-4">
                 <input 
                     id="m3u8-url" 
@@ -239,159 +116,245 @@
                 <button 
                     id="play-button" 
                     class="px-6 py-3 bg-brand-primary text-white font-bold rounded-md 
-                           hover:bg-red-700 transition transform active:scale-95 flex items-center justify-center"
+                           hover:bg-red-700 transition transform active:scale-95"
+                    onclick="loadStream()"
                 >
-                    <i class="fas fa-play mr-2"></i> PLAY STREAM
+                    PLAY STREAM
                 </button>
             </div>
         </div>
 
-        <!-- Error Message -->
-        <div id="error-message" class="hidden text-center text-red-600 font-semibold mt-6">
-            Unable to load video sources. Please try again later.
+        <!-- Stream Info Modal -->
+        <div id="stream-info-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+            <div class="bg-dark-secondary rounded-lg p-6 w-full max-w-md mx-4">
+                <h2 class="text-xl font-semibold mb-4">Stream Information</h2>
+                <div id="stream-info-content" class="space-y-2"></div>
+                <button 
+                    id="close-info-modal" 
+                    class="mt-4 px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-red-700"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div id="settings-menu" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center">
+            <div class="settings-menu rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Player Settings</h2>
+                    <button id="close-settings" class="text-white hover:text-brand-primary">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Quality Selector -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Video Quality</label>
+                        <select 
+                            id="quality-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        ></select>
+                    </div>
+
+                    <!-- Audio Language Selector -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Audio Language</label>
+                        <select 
+                            id="audio-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        ></select>
+                    </div>
+
+                    <!-- Playback Speed -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Playback Speed</label>
+                        <select 
+                            id="speed-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        >
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x (Normal)</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/video.js@7.8.4/dist/video.min.js"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
         let player, hls;
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsMenu = document.getElementById('settings-menu');
-        const closeSettingsBtn = document.getElementById('close-settings');
-        const pipButton = document.getElementById('pip-button');
-        const speedSelector = document.getElementById('speed-selector');
-        const playButton = document.getElementById('play-button');
-        const customPlayPause = document.getElementById('custom-play-pause');
-        const playIcon = document.getElementById('play-icon');
-        const loadingSpinner = document.getElementById('loading-spinner');
 
-        // Initialize player with default options
-        function initializePlayer(sourceUrl) {
-            const video = document.getElementById("video");
-            
-            // Show loading spinner
-            loadingSpinner.style.display = 'block';
-            
-            // Video.js player options
-            const playerOptions = {
-                controls: true,
-                autoplay: true,
-                preload: 'auto',
-                fluid: true,
-                controlBar: {
-                    children: [
-                        'playToggle',
-                        'volumePanel',
-                        'currentTimeDisplay',
-                        'timeDivider',
-                        'durationDisplay',
-                        'progressControl',
-                        'liveDisplay',
-                        'remainingTimeDisplay',
-                        'customControlSpacer',
-                        'playbackRateMenuButton',
-                        'chaptersButton',
-                        'descriptionsButton',
-                        'subsCapsButton',
-                        'audioTrackButton',
-                        'fullscreenToggle'
-                    ]
+        // Initialize Plyr
+        document.addEventListener('DOMContentLoaded', () => {
+            player = new Plyr('#player', {
+                title: 'Stream Player',
+                controls: [
+                    'play-large',
+                    'play',
+                    'progress',
+                    'current-time',
+                    'mute',
+                    'captions',
+                    'settings',
+                    'pip',
+                    'airplay',
+                    'fullscreen'
+                ],
+                settings: ['captions', 'quality', 'speed', 'loop'],
+                tooltips: {
+                    controls: true,
+                    seek: true
                 }
-            };
+            });
 
+            // Add custom info button
+            const infoButton = `
+                <button type="button" class="plyr__controls__item plyr__control" data-plyr="info">
+                    <svg role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="currentColor" d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zm0 13.5a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm1-5.25a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V7.5a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v2.25zm0-4.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v1.5z"/>
+                    </svg>
+                    <span class="plyr__tooltip">Stream Info</span>
+                </button>
+            `;
+            
+            // Add custom settings button
+            const settingsButton = `
+                <button type="button" class="plyr__controls__item plyr__control" id="settings-button">
+                    <svg role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/>
+                    </svg>
+                    <span class="plyr__tooltip">Settings</span>
+                </button>
+            `;
+            
+            const controlBar = player.elements.container.querySelector('.plyr__controls');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = infoButton.trim();
+            const infoButtonEl = tempDiv.firstChild;
+            controlBar.appendChild(infoButtonEl);
+
+            // Add settings button
+            tempDiv.innerHTML = settingsButton.trim();
+            const settingsButtonEl = tempDiv.firstChild;
+            controlBar.appendChild(settingsButtonEl);
+
+            // Stream info modal handling
+            const streamInfoModal = document.getElementById('stream-info-modal');
+            const closeInfoModal = document.getElementById('close-info-modal');
+            
+            infoButtonEl.addEventListener('click', () => {
+                streamInfoModal.classList.remove('hidden');
+                streamInfoModal.classList.add('flex');
+            });
+
+            closeInfoModal.addEventListener('click', () => {
+                streamInfoModal.classList.remove('flex');
+                streamInfoModal.classList.add('hidden');
+            });
+
+            // Settings menu handling
+            const settingsMenu = document.getElementById('settings-menu');
+            const closeSettings = document.getElementById('close-settings');
+            
+            settingsButtonEl.addEventListener('click', () => {
+                settingsMenu.classList.remove('hidden');
+                settingsMenu.classList.add('flex');
+            });
+
+            closeSettings.addEventListener('click', () => {
+                settingsMenu.classList.remove('flex');
+                settingsMenu.classList.add('hidden');
+            });
+
+            // Playback speed control
+            document.getElementById('speed-selector').addEventListener('change', (event) => {
+                player.speed = parseFloat(event.target.value);
+            });
+        });
+
+        function loadStream() {
+            const urlInput = document.getElementById("m3u8-url").value.trim();
+            if (!urlInput) {
+                alert("Please enter an M3U8 URL");
+                return;
+            }
+
+            const proxyUrl = `https://proxt-cdyl.onrender.com/proxy?url=${encodeURIComponent(urlInput)}`;
+            
+            // Destroy existing HLS instance if it exists
+            if (hls) {
+                hls.destroy();
+            }
+
+            const video = document.getElementById('player');
+            
             if (Hls.isSupported()) {
                 hls = new Hls({
                     enableWorker: true,
                     lowLatencyMode: true,
-                    backBufferLength: 30
+                    maxBufferLength: 120,
+                    maxMaxBufferLength: 600,
+                    liveSyncDuration: 30,
+                    liveMaxLatencyDuration: 60
                 });
-                
-                hls.loadSource(sourceUrl);
+
+                hls.loadSource(proxyUrl);
                 hls.attachMedia(video);
-                
-                player = videojs(video, playerOptions);
-                
+
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    updateStreamInfo(hls);
                     populateQualityOptions();
                     populateAudioTracks();
                     player.play();
-                    loadingSpinner.style.display = 'none';
                 });
-                
+
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error('HLS Error:', data);
-                    loadingSpinner.style.display = 'none';
-                    
-                    if (data.fatal) {
-                        switch(data.type) {
-                            case Hls.ErrorTypes.NETWORK_ERROR:
-                                showError('Network error - please check your connection');
-                                break;
-                            case Hls.ErrorTypes.MEDIA_ERROR:
-                                showError('Media error - trying to recover');
-                                hls.recoverMediaError();
-                                break;
-                            default:
-                                showError('Fatal error - cannot recover');
-                                break;
-                        }
-                    }
+                    handleHLSError(data);
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 // For Safari
-                video.src = sourceUrl;
-                player = videojs(video, playerOptions);
-                player.on('loadedmetadata', () => {
-                    loadingSpinner.style.display = 'none';
-                });
+                video.src = proxyUrl;
                 player.play();
             } else {
-                showError('Your browser does not support HLS playback');
-                loadingSpinner.style.display = 'none';
+                alert('Your browser does not support HLS playback');
             }
-            
-            // Setup player event listeners
-            setupPlayerEvents();
         }
 
-        function showError(message) {
-            const errorElement = document.getElementById('error-message');
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
-        }
+        function updateStreamInfo(hls) {
+            const infoContent = document.getElementById('stream-info-content');
+            infoContent.innerHTML = '';
 
-        function setupPlayerEvents() {
-            if (!player) return;
-            
-            // Update custom play/pause button based on player state
-            player.on('play', () => {
-                playIcon.classList.remove('fa-play');
-                playIcon.classList.add('fa-pause');
-            });
-            
-            player.on('pause', () => {
-                playIcon.classList.remove('fa-pause');
-                playIcon.classList.add('fa-play');
-            });
-            
-            // Show loading spinner when waiting for data
-            player.on('waiting', () => {
-                loadingSpinner.style.display = 'block';
-            });
-            
-            player.on('playing', () => {
-                loadingSpinner.style.display = 'none';
-            });
-            
-            // Custom play/pause button click handler
-            customPlayPause.addEventListener('click', () => {
-                if (player.paused()) {
-                    player.play();
-                } else {
-                    player.pause();
-                }
-            });
+            // Quality Levels
+            if (hls.levels && hls.levels.length > 0) {
+                const qualityInfo = document.createElement('div');
+                qualityInfo.innerHTML = `
+                    <strong>Available Qualities:</strong>
+                    ${hls.levels.map((level, index) => 
+                        `<div>${level.height}p (${(level.bitrate / 1000).toFixed(1)} kbps)</div>`
+                    ).join('')}
+                `;
+                infoContent.appendChild(qualityInfo);
+            }
+
+            // Audio Tracks
+            if (hls.audioTracks && hls.audioTracks.length > 0) {
+                const audioInfo = document.createElement('div');
+                audioInfo.innerHTML = `
+                    <strong>Audio Tracks:</strong>
+                    ${hls.audioTracks.map((track, index) => 
+                        `<div>${track.name} (${track.lang || 'Unknown'})</div>`
+                    ).join('')}
+                `;
+                infoContent.appendChild(audioInfo);
+            }
         }
 
         function populateQualityOptions() {
@@ -433,9 +396,13 @@
             hls.audioTracks.forEach((track, index) => {
                 const option = document.createElement("option");
                 option.value = index;
-                option.textContent = `${track.name} (${track.lang})`;
-                option.selected = track.default;
+                option.textContent = `${track.name} (${track.lang || 'Unknown'})`;
                 audioSelector.appendChild(option);
+                
+                if (track.default) {
+                    audioSelector.value = index;
+                    hls.audioTrack = index;
+                }
             });
             
             audioSelector.addEventListener("change", (event) => {
@@ -443,6 +410,29 @@
             });
         }
 
+        function handleHLSError(data) {
+            const { type, fatal, details } = data;
+            
+            if (fatal) {
+                switch(type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.warn('Network error - attempting to recover');
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.warn('Media error - attempting to recover');
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        console.error('Fatal error - cannot recover');
+                        hls.destroy();
+                        alert('Stream playback failed. Please check the URL or try again.');
+                        break;
+                }
+            }
+        }
+        
+        
         function getCookie(name) {
             return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '';
         }
@@ -489,71 +479,8 @@
                 document.getElementById('error-message').classList.remove('hidden');
             }
         }
-
-        function loadStream(url) {
-            const proxyUrl = `https://proxt-cdyl.onrender.com/proxy?url=${encodeURIComponent(url)}`;
-            
-            // Destroy previous player if exists
-            if (player) {
-                player.dispose();
-            }
-            if (hls) {
-                hls.destroy();
-            }
-
-            // Hide error message if it was shown
-            document.getElementById('error-message').classList.add('hidden');
-            
-            initializePlayer(proxyUrl);
-        }
-
-        // Manual URL play button
-        playButton.addEventListener('click', () => {
-            const urlInput = document.getElementById("m3u8-url").value.trim();
-            if (!urlInput) {
-                showError("Please enter an M3U8 URL");
-                return;
-            }
-            loadStream(urlInput);
-        });
-
-        // Toggle settings menu
-        settingsBtn.addEventListener('click', () => {
-            settingsMenu.classList.remove('hidden');
-            settingsMenu.classList.add('flex');
-        });
-
-        // Close settings menu
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsMenu.classList.remove('flex');
-            settingsMenu.classList.add('hidden');
-        });
-
-        // Close settings when clicking outside
-        settingsMenu.addEventListener('click', (e) => {
-            if (e.target === settingsMenu) {
-                settingsMenu.classList.remove('flex');
-                settingsMenu.classList.add('hidden');
-            }
-        });
-
-        // Picture-in-Picture toggle
-        pipButton.addEventListener('click', () => {
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture();
-            } else if (document.pictureInPictureEnabled) {
-                player.el().requestPictureInPicture();
-            }
-        });
-
-        // Playback speed control
-        speedSelector.addEventListener('change', (event) => {
-            if (player) {
-                player.playbackRate(parseFloat(event.target.value));
-            }
-        });
-
-        // Initialize when DOM is loaded
+        
+                // Initialize when DOM is loaded
         document.addEventListener("DOMContentLoaded", () => {
             fetchAndDisplayVideo();
             
@@ -563,43 +490,6 @@
             if (streamUrl) {
                 loadStream(streamUrl);
             }
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (!player) return;
-                
-                // Spacebar to play/pause
-                if (e.code === 'Space') {
-                    e.preventDefault();
-                    if (player.paused()) {
-                        player.play();
-                    } else {
-                        player.pause();
-                    }
-                }
-                
-                // Arrow keys for seeking
-                if (e.code === 'ArrowRight') {
-                    player.currentTime(player.currentTime() + 5);
-                } else if (e.code === 'ArrowLeft') {
-                    player.currentTime(player.currentTime() - 5);
-                }
-                
-                // M key for mute toggle
-                if (e.code === 'KeyM') {
-                    player.muted(!player.muted());
-                }
-                
-                // F key for fullscreen toggle
-                if (e.code === 'KeyF') {
-                    if (player.isFullscreen()) {
-                        player.exitFullscreen();
-                    } else {
-                        player.requestFullscreen();
-                    }
-                }
-            });
-        });
     </script>
 </body>
 </html>
