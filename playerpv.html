@@ -3,20 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Stream your favorite movies and TV shows in HD quality">
-    <meta name="keywords" content="Movies, TV Shows, Streaming, HD Videos">
-    <meta name="author" content="Your Streaming Platform">
+    <title>Plyr Stream Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>Video Information</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-primary': '#e50914',
+                        'dark-bg': '#141414',
+                        'dark-secondary': '#222',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #141414;
+            color: white;
+        }
+        .plyr--video {
+            background: #000;
+        }
+        .plyr__control--overlaid {
+            background: rgba(229, 9, 20, 0.8) !important;
+        }
+        .plyr__control.plyr__tab-focus,
+        .plyr__control:hover {
+            background: #e50914 !important;
+        }
+        /* Custom settings menu styles */
+        .settings-menu {
+            background-color: rgba(34, 34, 34, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen antialiased">
+<body class="bg-dark-bg text-white font-sans">
     <!-- Header -->
     <header class="bg-gradient-to-r from-gray-900 to-black shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4 md:space-x-10">
                 <div class="flex justify-start lg:w-0 lg:flex-1">
                     <a href="home.html" class="text-2xl font-bold text-white hover:text-gray-200 transition">
-                        
+                        <span class="text-brand-primary">PREMIUM</span> PLAYER
                     </a>
                 </div>
                 
@@ -36,36 +69,373 @@
         </div>
     </header>
 
-    <!-- Main Content -->
-    <div class="container max-w-4xl mx-auto px-4 py-8">
-        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
-            <!-- Thumbnail Container -->
+    <!-- Video Sources Section -->
+    <div class="mt-8 max-w-4xl mx-auto">
+        <h2 class="text-xl font-bold mb-4">Available Sources</h2>
+        <ul id="video-sources" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Sources will be dynamically populated here -->
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Video Info Section -->
+        <div class="max-w-4xl mx-auto mb-8 bg-dark-secondary rounded-lg overflow-hidden shadow-lg">
             <div class="relative w-full aspect-video">
                 <img id="video-thumbnail" 
                      src="" 
                      alt="Video Thumbnail" 
-                     class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-90"
+                     class="w-full h-full object-cover"
                 />
             </div>
+        </div>
 
-            <!-- Content Section -->
-            <div class="p-6 md:p-8">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Available Video Sources</h2>
-                
-                <!-- Video Sources List -->
-                <ul id="video-sources" class="space-y-4">
-                    <!-- Sources will be dynamically populated here -->
-                </ul>
+        <div class="relative w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden shadow-2xl">
+            <!-- Player Container -->
+            <div class="relative">
+                <video 
+                    id="player" 
+                    controls 
+                    crossorigin 
+                    playsinline 
+                    class="w-full aspect-video"
+                >
+                    <source type="application/x-mpegURL" src="" />
+                </video>
+            </div>
+        </div>
 
-                <!-- Error Message -->
-                <div id="error-message" class="hidden text-center text-red-600 font-semibold mt-6">
-                    Unable to load video sources. Please try again later.
+        <!-- URL Input Section -->
+        <div class="hidden mt-6 max-w-4xl mx-auto">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input 
+                    id="m3u8-url" 
+                    type="text" 
+                    placeholder="Enter M3U8 Stream URL" 
+                    class="flex-grow px-4 py-3 bg-dark-secondary border border-gray-700 rounded-md text-white 
+                           focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                >
+                <button 
+                    id="play-button" 
+                    class="px-6 py-3 bg-brand-primary text-white font-bold rounded-md 
+                           hover:bg-red-700 transition transform active:scale-95"
+                    onclick="loadStream()"
+                >
+                    PLAY STREAM
+                </button>
+            </div>
+        </div>
+
+        <!-- Stream Info Modal -->
+        <div id="stream-info-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+            <div class="bg-dark-secondary rounded-lg p-6 w-full max-w-md mx-4">
+                <h2 class="text-xl font-semibold mb-4">Stream Information</h2>
+                <div id="stream-info-content" class="space-y-2"></div>
+                <button 
+                    id="close-info-modal" 
+                    class="mt-4 px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-red-700"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div id="settings-menu" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center">
+            <div class="settings-menu rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Player Settings</h2>
+                    <button id="close-settings" class="text-white hover:text-brand-primary">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Quality Selector -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Video Quality</label>
+                        <select 
+                            id="quality-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        ></select>
+                    </div>
+
+                    <!-- Audio Language Selector -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Audio Language</label>
+                        <select 
+                            id="audio-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        ></select>
+                    </div>
+
+                    <!-- Playback Speed -->
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Playback Speed</label>
+                        <select 
+                            id="speed-selector" 
+                            class="w-full bg-black/50 border border-gray-700 rounded-md p-2 text-white"
+                        >
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x (Normal)</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
+        let player, hls;
+
+        // Initialize Plyr
+        document.addEventListener('DOMContentLoaded', () => {
+            player = new Plyr('#player', {
+                title: 'Stream Player',
+                controls: [
+                    'play-large',
+                    'play',
+                    'progress',
+                    'current-time',
+                    'mute',
+                    'captions',
+                    'settings',
+                    'pip',
+                    'airplay',
+                    'fullscreen'
+                ],
+                settings: ['captions', 'quality', 'speed', 'loop'],
+                tooltips: {
+                    controls: true,
+                    seek: true
+                }
+            });
+
+            // Add custom info button
+            const infoButton = `
+                <button type="button" class="plyr__controls__item plyr__control" data-plyr="info">
+                    <svg role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="currentColor" d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zm0 13.5a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm1-5.25a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V7.5a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v2.25zm0-4.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v1.5z"/>
+                    </svg>
+                    <span class="plyr__tooltip">Stream Info</span>
+                </button>
+            `;
+            
+            // Add custom settings button
+            const settingsButton = `
+                <button type="button" class="plyr__controls__item plyr__control" id="settings-button">
+                    <svg role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/>
+                    </svg>
+                    <span class="plyr__tooltip">Settings</span>
+                </button>
+            `;
+            
+            const controlBar = player.elements.container.querySelector('.plyr__controls');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = infoButton.trim();
+            const infoButtonEl = tempDiv.firstChild;
+            controlBar.appendChild(infoButtonEl);
+
+            // Add settings button
+            tempDiv.innerHTML = settingsButton.trim();
+            const settingsButtonEl = tempDiv.firstChild;
+            controlBar.appendChild(settingsButtonEl);
+
+            // Stream info modal handling
+            const streamInfoModal = document.getElementById('stream-info-modal');
+            const closeInfoModal = document.getElementById('close-info-modal');
+            
+            infoButtonEl.addEventListener('click', () => {
+                streamInfoModal.classList.remove('hidden');
+                streamInfoModal.classList.add('flex');
+            });
+
+            closeInfoModal.addEventListener('click', () => {
+                streamInfoModal.classList.remove('flex');
+                streamInfoModal.classList.add('hidden');
+            });
+
+            // Settings menu handling
+            const settingsMenu = document.getElementById('settings-menu');
+            const closeSettings = document.getElementById('close-settings');
+            
+            settingsButtonEl.addEventListener('click', () => {
+                settingsMenu.classList.remove('hidden');
+                settingsMenu.classList.add('flex');
+            });
+
+            closeSettings.addEventListener('click', () => {
+                settingsMenu.classList.remove('flex');
+                settingsMenu.classList.add('hidden');
+            });
+
+            // Playback speed control
+            document.getElementById('speed-selector').addEventListener('change', (event) => {
+                player.speed = parseFloat(event.target.value);
+            });
+
+            // Initialize video data
+            fetchAndDisplayVideo();
+        });
+
+        function loadStream(url) {
+            const urlInput = url || document.getElementById("m3u8-url").value.trim();
+            if (!urlInput) {
+                alert("Please enter an M3U8 URL");
+                return;
+            }
+
+            const proxyUrl = `https://proxt-cdyl.onrender.com/proxy?url=${encodeURIComponent(urlInput)}`;
+            
+            // Destroy existing HLS instance if it exists
+            if (hls) {
+                hls.destroy();
+            }
+
+            const video = document.getElementById('player');
+            
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    maxBufferLength: 120,
+                    maxMaxBufferLength: 600,
+                    liveSyncDuration: 30,
+                    liveMaxLatencyDuration: 60
+                });
+
+                hls.loadSource(proxyUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    updateStreamInfo(hls);
+                    populateQualityOptions();
+                    populateAudioTracks();
+                    player.play();
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.error('HLS Error:', data);
+                    handleHLSError(data);
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // For Safari
+                video.src = proxyUrl;
+                player.play();
+            } else {
+                alert('Your browser does not support HLS playback');
+            }
+        }
+
+        function updateStreamInfo(hls) {
+            const infoContent = document.getElementById('stream-info-content');
+            infoContent.innerHTML = '';
+
+            // Quality Levels
+            if (hls.levels && hls.levels.length > 0) {
+                const qualityInfo = document.createElement('div');
+                qualityInfo.innerHTML = `
+                    <strong>Available Qualities:</strong>
+                    ${hls.levels.map((level, index) => 
+                        `<div>${level.height}p (${(level.bitrate / 1000).toFixed(1)} kbps)</div>`
+                    ).join('')}
+                `;
+                infoContent.appendChild(qualityInfo);
+            }
+
+            // Audio Tracks
+            if (hls.audioTracks && hls.audioTracks.length > 0) {
+                const audioInfo = document.createElement('div');
+                audioInfo.innerHTML = `
+                    <strong>Audio Tracks:</strong>
+                    ${hls.audioTracks.map((track, index) => 
+                        `<div>${track.name} (${track.lang || 'Unknown'})</div>`
+                    ).join('')}
+                `;
+                infoContent.appendChild(audioInfo);
+            }
+        }
+
+        function populateQualityOptions() {
+            const qualitySelector = document.getElementById("quality-selector");
+            qualitySelector.innerHTML = "";
+            
+            if (!hls.levels || hls.levels.length < 2) {
+                qualitySelector.style.display = 'none';
+                document.querySelector('label[for="quality-selector"]').style.display = 'none';
+                return;
+            }
+            
+            hls.levels.forEach((level, index) => {
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = `${level.height}p (${(level.bitrate / 1000000).toFixed(1)} Mbps)`;
+                qualitySelector.appendChild(option);
+            });
+            
+            qualitySelector.addEventListener("change", (event) => {
+                hls.currentLevel = parseInt(event.target.value);
+            });
+            
+            // Select the highest quality by default
+            hls.currentLevel = hls.levels.length - 1;
+            qualitySelector.value = hls.levels.length - 1;
+        }
+
+        function populateAudioTracks() {
+            const audioSelector = document.getElementById("audio-selector");
+            audioSelector.innerHTML = "";
+            
+            if (!hls.audioTracks || hls.audioTracks.length < 2) {
+                audioSelector.style.display = 'none';
+                document.querySelector('label[for="audio-selector"]').style.display = 'none';
+                return;
+            }
+            
+            hls.audioTracks.forEach((track, index) => {
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = `${track.name} (${track.lang || 'Unknown'})`;
+                audioSelector.appendChild(option);
+                
+                if (track.default) {
+                    audioSelector.value = index;
+                    hls.audioTrack = index;
+                }
+            });
+            
+            audioSelector.addEventListener("change", (event) => {
+                hls.audioTrack = parseInt(event.target.value);
+            });
+        }
+
+        function handleHLSError(data) {
+            const { type, fatal, details } = data;
+            
+            if (fatal) {
+                switch(type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.warn('Network error - attempting to recover');
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.warn('Media error - attempting to recover');
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        console.error('Fatal error - cannot recover');
+                        hls.destroy();
+                        alert('Stream playback failed. Please check the URL or try again.');
+                        break;
+                }
+            }
+        }
+        
         function getCookie(name) {
             return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '';
         }
@@ -89,25 +459,30 @@
                 const sourcesContainer = document.getElementById('video-sources');
                 sourcesContainer.innerHTML = searchResult.sources.map(source => `
                     <li>
-<a href="https://netfree.cc${source.file.replace('=unknown::su', hValue.replace('::su', '::ni'))}"
-                           class="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg text-center 
+                        <button data-source="https://netfree.cc${source.file.replace('::su', '::su')}" 
+                           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg text-center 
                                   hover:bg-blue-700 transition duration-300 ease-in-out transform 
-                                  hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 
-                                  focus:ring-blue-500 focus:ring-opacity-50"
-                           target="_blank">
-                           ${source.label}
-                        </a>
+                                  hover:-translate-y-1 focus:outline-none focus:ring-2 
+                                  focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center">
+                           <i class="fas fa-play-circle mr-2"></i> ${source.label}
+                        </button>
                     </li>
                 `).join('');
 
+                // Add event listeners to source buttons
+                document.querySelectorAll('[data-source]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const sourceUrl = button.getAttribute('data-source');
+                        document.getElementById('m3u8-url').value = sourceUrl;
+                        loadStream(sourceUrl);
+                    });
+                });
+
             } catch (error) {
                 console.error('Error fetching video data:', error);
-                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('error-message')?.classList.remove('hidden');
             }
         }
-
-        // Call the function to fetch and display video after DOM loads
-        document.addEventListener("DOMContentLoaded", fetchAndDisplayVideo);
     </script>
 </body>
 </html>
